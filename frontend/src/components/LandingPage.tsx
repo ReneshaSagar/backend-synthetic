@@ -1,0 +1,139 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowRight, Sparkles, LayoutDashboard, Users, FileText, ChevronDown } from 'lucide-react';
+
+interface LandingPageProps {
+  onSubmitIdea: (idea: string) => void;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ onSubmitIdea }) => {
+  const [idea, setIdea] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (idea.trim()) {
+      onSubmitIdea(idea);
+    }
+  };
+
+  const scrollToMore = () => {
+    document.getElementById('learn-more')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-framer-bg dark:bg-[#050505] text-framer-text dark:text-white selection:bg-gray-200 dark:selection:bg-[#222] overflow-hidden relative transition-colors duration-500">
+      
+      {/* Soft Ambient Background Blurs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-100 dark:bg-blue-900/30 rounded-full blur-[120px] opacity-60 pointer-events-none transition-colors duration-500" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-100 dark:bg-purple-900/30 rounded-full blur-[120px] opacity-60 pointer-events-none transition-colors duration-500" />
+
+      {/* Hero Section */}
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-4xl w-full text-center space-y-8"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#111] shadow-sm border border-framer-border dark:border-[#222] text-sm font-medium text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-500">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Introducing AI Simulations</span>
+          </div>
+
+          <h1 className="text-6xl md:text-8xl font-semibold tracking-tight text-framer-text dark:text-white leading-[1.1] transition-colors duration-500">
+            Test your idea before the world does.
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-framer-muted dark:text-gray-400 font-light tracking-wide max-w-2xl mx-auto leading-relaxed transition-colors duration-500">
+            Generate a synthetic audience to validate your startup, product, or feature concept instantly.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-16 w-full max-w-2xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white dark:bg-[#0a0a0a] border border-framer-border dark:border-[#222] rounded-[2rem] p-2 sm:p-3 shadow-framer dark:shadow-none hover:shadow-framer-hover transition-all duration-500">
+              <textarea
+                value={idea}
+                onChange={(e) => setIdea(e.target.value)}
+                placeholder="Describe your startup, product, or feature concept..."
+                className="w-full bg-transparent text-framer-text dark:text-white placeholder-gray-400 dark:placeholder-gray-600 p-4 text-lg resize-none focus:outline-none min-h-[60px] max-h-[150px]"
+                rows={1}
+              />
+              <button
+                type="submit"
+                disabled={!idea.trim()}
+                className="w-full sm:w-auto px-8 py-4 rounded-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-[#222] dark:disabled:text-[#555] disabled:shadow-none shadow-md transition-all duration-300 flex items-center justify-center gap-2 font-medium text-lg shrink-0"
+              >
+                Simulate <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </form>
+        </motion.div>
+
+        {/* Scroll down indicator */}
+        <motion.button 
+          onClick={scrollToMore}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, y: [0, 8, 0] }}
+          transition={{ delay: 1.5, duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-12 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors bg-white/50 dark:bg-[#111]/50 backdrop-blur-sm p-3 rounded-full border border-framer-border dark:border-[#222] shadow-sm"
+        >
+          <ChevronDown className="w-6 h-6" />
+        </motion.button>
+      </div>
+
+      {/* Learn More Section */}
+      <div id="learn-more" className="w-full max-w-6xl mx-auto px-6 py-32 space-y-40 relative z-10">
+        
+        {/* Problem & Solution */}
+        <div className="grid md:grid-cols-2 gap-20 items-center">
+          <div className="space-y-8">
+            <h2 className="text-4xl font-semibold tracking-tight text-framer-text dark:text-white transition-colors duration-500">The Problem</h2>
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-xl font-light transition-colors duration-500">
+              Founders and companies have no quick, unbiased way to validate their ideas before launching. Reddit is inconsistent, friends are biased, and research firms are slow.
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-xl font-light transition-colors duration-500">
+              As a result, teams spend months building products that users may not actually want.
+            </p>
+          </div>
+          <div className="bg-white dark:bg-[#0A0A0A] border border-framer-border dark:border-[#222] p-12 rounded-[2rem] shadow-framer dark:shadow-none space-y-8 relative overflow-hidden group hover:shadow-framer-hover transition-all duration-500">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 transition-colors duration-500">
+              <LayoutDashboard className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-semibold tracking-tight dark:text-white transition-colors duration-500">The Solution</h2>
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-lg font-light transition-colors duration-500">
+              An AI-powered platform that generates a hyper-realistic synthetic audience to predict reactions. 
+            </p>
+            <p className="text-framer-text dark:text-white font-medium leading-relaxed text-lg transition-colors duration-500">
+              Get instant feedback, objections, and insights instead of waiting weeks for real-world testing.
+            </p>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div className="space-y-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-semibold tracking-tight text-framer-text dark:text-white transition-colors duration-500">How It Works</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-xl font-light transition-colors duration-500">Three simple steps to profound insights.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: FileText, title: "1. Idea Analysis", desc: "The AI parses your startup idea or feature concept and identifies the core target market automatically." },
+              { icon: Users, title: "2. Audience Generation", desc: "We spawn distinct synthetic personas (e.g., students, founders, PMs) matching your exact demographics." },
+              { icon: Sparkles, title: "3. Simulation", desc: "Each persona reacts independently, generating authentic thoughts, concerns, and a compiled insight report." }
+            ].map((feature, idx) => (
+              <div key={idx} className="bg-white dark:bg-[#0a0a0a] border border-framer-border dark:border-[#222] p-10 rounded-[2rem] hover:-translate-y-2 hover:shadow-framer-hover dark:shadow-none transition-all duration-500">
+                <div className="w-14 h-14 bg-gray-50 dark:bg-[#111] rounded-2xl flex items-center justify-center mb-8 text-black dark:text-white transition-colors duration-500">
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-4 tracking-tight dark:text-white transition-colors duration-500">{feature.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 leading-relaxed font-light text-lg transition-colors duration-500">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};

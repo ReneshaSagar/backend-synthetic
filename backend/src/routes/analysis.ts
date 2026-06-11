@@ -1,0 +1,169 @@
+import { Router, Request, Response } from 'express';
+import { dbService } from '../services/database';
+import { analyzerAgent } from '../agents/analyzer';
+import { generatorAgent } from '../agents/generator';
+import { simulatorAgent } from '../agents/simulator';
+import { insightsAgent } from '../agents/insights';
+import { reporterAgent } from '../agents/reporter';
+import { compiledWorkflow } from '../langgraph/workflow';
+
+const router = Router();
+
+/**
+ * Helper to handle async route errors
+ */
+const asyncHandler = (fn: (req: Request, res: Response) => Promise<any>) => {
+  return (req: Request, res: Response, next: any) => {
+    fn(req, res).catch(next);
+  };
+};
+
+/**
+ * POST /analyze-idea
+ * Dissects raw idea text and extracts structured industry analysis metadata.
+ */
+router.post('/analyze-idea', asyncHandler(async (req: Request, res: Response) => {
+  const { idea } = req.body;
+  if (!idea || typeof idea !== 'string' || idea.trim() === '') {
+    return res.status(400).json({ error: 'idea string is required in request body.' });
+  }
+
+  console.log('API: Analyzing idea...');
+  const analysis = await analyzerAgent.analyzeIdea(idea);
+  const savedIdea = await dbService.saveIdea(idea, analysis);
+
+  return res.json({
+    message: 'Idea analyzed and saved successfully.',
+    ideaId: savedIdea.id,
+    analysis
+  });
+}));
+
+/**
+ * POST /generate-audience
+ * Generates 15-20 diverse personas based on the idea analysis.
+ */
+router.post('/generate-audience', asyncHandler(async (req: Request, res: Response) => {
+  const { ideaId } = req.body;
+  if (!ideaId || typeof ideaId !== 'string') {
+    return res.status(400).json({ error: 'ideaId is required in request body.' });
+  }
+
+  console.log(`API: Fetching idea ${ideaId}...`);
+  const idea = await dbService.getIdea(ideaId);
+  if (!idea) {
+    return res.status(404).json({ error: `Idea with ID ${ideaId} not found.` });
+  }
+  if (!idea.analysis) {
+    return res.status(400).json({ error: 'Idea has not been analyzed yet. Run /analyze-idea first.' });
+  }
+
+  console.log(`API: Generating audience personas for idea ${ideaId}...`);
+  const personas = await generatorAgent.generateAudience(idea.rawText, idea.analysis);
+  const savedPersonas = await dbService.savePersonas(ideaId, personas);
+
+  return res.json({
+    message: 'Audience personas generated and saved successfully.',
+    ideaId,
+    personas: savedPersonas
+  });
+}));
+
+/**
+ * POST /simulate
+ * Simulates persona reactions to the startup/product idea in parallel.
+ */
+router.post('/simulate', asyncHandler(async (req: Request, res: Response) => {
+  const { ideaId } = req.body;
+  if (!ideaId || typeof ideaId !== 'string') {
+    return res.status(400).json({ error: 'ideaId is required in request body.' });
+  }
+
+  const idea = await dbService.getIdea(ideaId);
+  if (!idea) {
+    return res.status(404).json({ error: `Idea with ID ${ideaId} not found.` });
+  }
+
+  const personas = await dbService.getPersonas(ideaId);
+  if (!personas || personas.length === 0) {
+    return res.status(400).json({ error: 'No personas found for this idea. Run /generate-audience first.' });
+  }
+
+  console.log(`API: Simulating reactions for ${personas.length} personas...`);
+  const simulations = await simulatorAgent.simulateAudience(idea.rawText, personas);
+  const savedSims = await dbService.saveSimulations(ideaId, simulations);
+
+  return res.json({
+    message: 'Persona reactions simulated and saved successfully.',
+    ideaId,
+    simulations: savedSims
+  });
+}));
+
+/**
+ * POST /generate-report
+ * Analyzes simulated reactions, generates aggregate insights, and compiles the final report.
+ */
+router.post('/generate-report', asyncHandler(async (req: Request, res: Response) => {
+  const { ideaId } = req.body;
+  if (!ideaId || typeof ideaId !== 'string') {
+    return res.status(400).json({ error: 'ideaId is required in request body.' });
+  }
+
+  const idea = await dbService.getIdea(ideaId);
+  if (!idea) {
+    return res.status(404).json({ error: `Idea with ID ${ideaId} not found.` });
+  }
+
+  const personas = await dbService.getPersonas(ideaId);
+  const simulations = await dbService.getSimulations(ideaId);
+
+  if (!personas || personas.length === 0 || !simulations || simulations.length === 0) {
+    return res.status(400).json({ error: 'Audience simulation must be completed before report generation. Run /simulate first.' });
+  }
+
+  console.log(`API: Analyzing simulations and generating insights for idea ${ideaId}...`);
+  const insights = await insightsAgent.generateInsights(idea.rawText, simulations);
+
+  console.log(`API: Compiling final report markdown...`);
+  const reportMarkdown = await reporterAgent.generateReport(idea.rawText, personas, simulations, insights);
+  const savedReport = await dbService.saveReport(ideaId, insights, reportMarkdown);
+
+  return res.json({
+    message: 'Insights and report generated successfully.',
+    ideaId,
+    insights,
+    report: savedReport
+  });
+}));
+
+/**
+ * POST /full-analysis
+ * Orchestrates the entire LangGraph workflow end-to-end.
+ */
+router.post('/full-analysis', asyncHandler(async (req: Request, res: Response) => {
+  const { idea } = req.body;
+  if (!idea || typeof idea !== 'string' || idea.trim() === '') {
+    return res.status(400).json({ error: 'idea string is required in request body.' });
+  }
+
+  console.log(`API [LANGGRAPH]: Triggering end-to-end analysis workflow for: "${idea.substring(0, 60)}..."`);
+  
+  // Run the full compiled StateGraph workflow
+  const finalState = await compiledWorkflow.invoke({
+    rawInput: idea
+  });
+
+  return res.json({
+    message: 'End-to-end simulation completed successfully.',
+    ideaId: finalState.ideaId,
+    analyzedIdea: finalState.analyzedIdea,
+    personasCount: finalState.personas?.length || 0,
+    personas: finalState.personas,
+    simulations: finalState.simulations,
+    insights: finalState.insights,
+    report: finalState.report
+  });
+}));
+
+export default router;
